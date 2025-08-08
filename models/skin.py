@@ -64,5 +64,5 @@ class SimpleSkinModel(nn.Module):
 # Factory function to create models
 def create_model(model_name='pct', feat_dim=256, **kwargs):
     if model_name == "pct":
-        return SimpleSkinModel(feat_dim=feat_dim, num_joints=22)
+        return SimpleSkinModel(feat_dim=feat_dim, num_joints=kwargs.get('num_joints', 22))
     raise NotImplementedError()

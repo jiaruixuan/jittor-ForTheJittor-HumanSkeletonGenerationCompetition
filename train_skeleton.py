@@ -11,6 +11,7 @@ from jittor import optim
 from dataset.dataset import get_dataloader, transform
 from dataset.sampler import SamplerMix
 from dataset.exporter import Exporter
+from dataset.format import num_joints
 from models.skeleton import create_model
 
 from models.metrics import J2J
@@ -40,11 +41,11 @@ def train(args):
     
     # Log training parameters
     log_message(f"Starting training with parameters: {args}")
-    
     # Create model
     model = create_model(
         model_name=args.model_name,
-        model_type=args.model_type
+        model_type=args.model_type,
+        output_channels=num_joints*3,
     )
     
     sampler = SamplerMix(num_samples=1024, vertex_samples=512)
@@ -58,7 +59,7 @@ def train(args):
     if args.optimizer == 'sgd':
         optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum, weight_decay=args.weight_decay)
     elif args.optimizer == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
+        optimizer = optim.AdamW(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
     else:
         raise ValueError(f"Unknown optimizer: {args.optimizer}")
     
@@ -74,6 +75,7 @@ def train(args):
         shuffle=True,
         sampler=sampler,
         transform=transform,
+        random_pose=args.random_pose,
     )
     
     if args.val_data_list:
@@ -85,6 +87,7 @@ def train(args):
             shuffle=False,
             sampler=sampler,
             transform=transform,
+            random_pose=True,
         )
     else:
         val_loader = None
@@ -224,6 +227,8 @@ def main():
                         help='Weight decay (L2 penalty)')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='Momentum for SGD optimizer')
+    parser.add_argument('--random_pose', type=int, default=0,
+                        help='Apply random pose to asset')
     
     # Output parameters
     parser.add_argument('--output_dir', type=str, default='output/skeleton',

@@ -6,6 +6,7 @@ import argparse
 from dataset.asset import Asset
 from dataset.dataset import get_dataloader, transform
 from dataset.sampler import SamplerMix
+from dataset.format import num_joints
 from models.skin import create_model
 
 import numpy as np
@@ -21,7 +22,8 @@ def predict(args):
     # Create model
     model = create_model(
         model_name=args.model_name,
-        model_type=args.model_type
+        model_type=args.model_type,
+        num_joints=num_joints,
     )
     
     sampler = SamplerMix(num_samples=1024, vertex_samples=512)

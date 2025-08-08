@@ -64,7 +64,7 @@ baseline分为预测joint、预测skin两个阶段。所有输入的数据均被
 
 运行baseline训练代码：
 
-```
+```bash
 bash launch/train_skeleton.sh
 bash launch/train_skin.sh
 ```
@@ -77,7 +77,7 @@ bash launch/train_skin.sh
 
 运行预测代码：
 
-```
+```bash
 bash launch/predict_skeleton.sh
 bash launch/predict_skin.sh
 ```
@@ -86,7 +86,7 @@ bash launch/predict_skin.sh
 
 如果需要可视化预测结果，可以运行以下代码（需要下面的debug环境）：
 
-```
+```bash
 # 只渲染图片结果
 bash launch/render_predict_results.sh
 
@@ -122,6 +122,79 @@ predict
 `predict_skin.npy`是预测的蒙皮数据，包含形状为`(N, J)`的数据，其中第`i`行的`J`个数字对应了原本的`mesh`的第`i`个节点，分别关于骨骼的`J`个蒙皮权值。
 
 `transformed_vertices.npy`是选手预测的骨骼对应的顶点坐标，包含形状为`(N, 3)`的数据。选手*要确保*预测的骨架能够对应这个顶点数据（也就是说，对于原本顶点坐标的`transform`操作，和对于预测骨骼的`transform`操作要完全一致）。在评测时会将原本`mesh`的顶点和选手给出的`transformed_vertices`归一化到`[-1, 1]^3`中进行评测。评测指标包括`joint to joint loss`、`vertex loss`、`skin l1 loss`、`vertex normalization loss`。
+
+## B榜任务
+
+选手可以额外clone一次本仓库（用来查看baseline），使用同样的环境，下载数据集：
+
+[B榜数据集]()
+
+解压后，命名为`data`后，置于根目录下，训练方式为：
+
+```bash
+HARD=1 bash launch/train_skeleton.sh --random_pose 1
+HARD=1 bash launch/train_skin.sh --random_pose 1
+```
+
+运行预测代码：
+
+```bash
+HARD=1 bash launch/predict_skeleton.sh
+HARD=1 bash launch/predict_skin.sh
+```
+
+在B榜中，任务有了略微的变化。包含以下两点：
+
+1. 骨骼数量增多：在A榜中，原本只有22个比较粗糙的骨骼。为了考察选手们模型的更加细致的能力，在B榜中额外添加了30个手部的骨骼（`J=52`）。关于骨架的具体拓扑可以参考`dataset/format.py`。
+
+2. 输入姿态改变：在A榜中，所有需要预测的`mesh`均为T-pose或A-pose下的姿态，而在B榜中还会额外考察选手模型对任意pose骨骼预测的能力。在新的数据集中，`data/test/mixamo`和`data/test/vroid`里`id`大于10000的数据，均为`id`减去10000的静态姿势基础上，随机使用`data/track`里动捕序列的某一帧的结果。
+
+最后需要提交的预测文件结构仍然和A榜一致。
+
+## 训练时增加任意动作
+
+由于需要预测任意姿态下的骨骼，毫无疑问需要添加任意动作的数据增强。这部分内容解释了最后评测时用到的数据和数据增强方法。
+
+在B榜的`data/track`中，总共有10个动捕序列，每个动捕序列为`npz`文件，其中包含`matrix_basis`和`offset`字段。`offset`字段是`root`骨骼的位移，但一般来说都会对位置归一化，所以对训练没什么效果，可以不考虑。
+
+`matrix_basis`为形状为`(frame, J, 4, 4)`的`ndarray`，其中`frame`表示总的帧数，`J=52`，最后两维是旋转矩阵。在进行任意pose的数据增强时，可以使用`dataset/asset.py/Asset/apply_matrix_basis`：
+
+```python
+import numpy as np
+from dataset.asset import Asset
+matrix_basis = np.load('data/track/0.npz')['matrix_basis'][0]
+asset = Asset.load("data/train/vroid/0.npz")
+asset.apply_matrix_basis(matrix_basis)
+asset.export_mesh('res.obj') # 导出查看
+```
+
+当然，由于这些动捕序列共享一个骨架，而训练集中的骨架互不相同，只使用这些动作可能会引入额外偏差。并且动作数过少，选手可能需要随机pose作为增强的策略：
+
+```python
+from dataset.asset import Asset
+asset = Asset.load("data/train/vroid/0.npz")
+matrix_basis = asset.get_random_matrix_basis(30.0)
+asset.apply_matrix_basis(matrix_basis)
+asset.export_mesh('res.obj') # 导出查看
+```
+
+具体可以参考baseline数据读入部分：`dataset/dataset.py/RigDataset/__getitem__`。
+
+## 导出动作到预测的文件
+
+这一步是为了导出动作，观察蒙皮是否真的合理（提示：就算有非常小的蒙皮误差，在最终可视化时也也可能有非常明显的毛刺现象）。需要使用后面的可视化debug环境。
+
+在`data/animation`文件中，提供了`track`的原始动作文件，它们均来自于[mixamo](https://www.mixamo.com)。进入debug环境后，首先安装一些额外的包：
+
+```bash
+pip install git+https://github.com/czpcf/bone-inspector.git
+```
+
+之后需要先得到预测的骨骼蒙皮的fbx文件，这里方便起见，先使用训练数据集里的模型。可以参考`transfer.py`。
+
+运行`python transfer.py`后，可以获得`ani.fbx`，在`blender`中选择`File`->`Import`->`FBX`，导入`ani.fbx`，按下空格键后，即可播放动画：
+
+![效果](visualize.gif)
 
 ## 可视化
 

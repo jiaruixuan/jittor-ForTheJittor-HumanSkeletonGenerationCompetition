@@ -11,6 +11,7 @@ from jittor import optim
 from dataset.dataset import get_dataloader, transform
 from dataset.format import id_to_name
 from dataset.sampler import SamplerMix
+from dataset.format import num_joints
 from models.skin import create_model
 
 from dataset.exporter import Exporter
@@ -44,6 +45,7 @@ def train(args):
     # Create model
     model = create_model(
         model_name=args.model_name,
+        num_joints=num_joints,
     )
     
     # Load pre-trained model if specified
@@ -72,6 +74,7 @@ def train(args):
         shuffle=True,
         sampler=SamplerMix(num_samples=1024, vertex_samples=512),
         transform=transform,
+        random_pose=args.random_pose,
     )
     
     if args.val_data_list:
@@ -223,6 +226,8 @@ def main():
                         help='Weight decay (L2 penalty)')
     parser.add_argument('--momentum', type=float, default=0.9,
                         help='Momentum for SGD optimizer')
+    parser.add_argument('--random_pose', type=int, default=0,
+                        help='Apply random pose to asset')
     
     # Output parameters
     parser.add_argument('--output_dir', type=str, default='output/skin',

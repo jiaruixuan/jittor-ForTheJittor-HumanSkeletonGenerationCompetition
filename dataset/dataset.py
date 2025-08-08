@@ -51,7 +51,8 @@ class RigDataset(Dataset):
         shuffle: bool,
         sampler: Sampler,
         transform: Union[Callable, None] = None,
-        return_origin_vertices: bool = False
+        return_origin_vertices: bool = False,
+        random_pose: bool = False,
     ):
         super().__init__()
         self.data_root  = data_root
@@ -61,6 +62,8 @@ class RigDataset(Dataset):
         self.shuffle    = shuffle
         self._sampler   = sampler # do not use `sampler` to avoid name conflict
         self.transform  = transform
+        
+        self.random_pose = random_pose
         
         self.return_origin_vertices = return_origin_vertices
         self.set_attrs(
@@ -86,6 +89,8 @@ class RigDataset(Dataset):
         
         path = self.paths[index]
         asset = Asset.load(os.path.join(self.data_root, path))
+        if self.random_pose and np.random.rand() < 0.5:
+            asset.apply_matrix_basis(asset.get_random_matrix_basis(30.0))
         if self.transform is not None:
             self.transform(asset)
         origin_vertices = jt.array(asset.vertices.copy()).float32()
@@ -140,6 +145,7 @@ def get_dataloader(
     sampler: Sampler,
     transform: Union[Callable, None] = None,
     return_origin_vertices: bool = False,
+    random_pose: bool = False,
 ):
     """
     Create a dataloader for point cloud data
@@ -168,6 +174,7 @@ def get_dataloader(
         sampler=sampler,
         transform=transform,
         return_origin_vertices=return_origin_vertices,
+        random_pose=random_pose,
     )
     
     return dataset

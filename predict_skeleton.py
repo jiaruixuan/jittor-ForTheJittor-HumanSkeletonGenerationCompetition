@@ -6,6 +6,7 @@ import argparse
 from dataset.dataset import get_dataloader, transform
 from dataset.sampler import SamplerMix
 from dataset.exporter import Exporter
+from dataset.format import num_joints
 from models.skeleton import create_model
 
 from tqdm import tqdm
@@ -19,7 +20,8 @@ def predict(args):
     # Create model
     model = create_model(
         model_name=args.model_name,
-        model_type=args.model_type
+        model_type=args.model_type,
+        output_channels=num_joints*3,
     )
     
     sampler = SamplerMix(num_samples=1024, vertex_samples=512)
