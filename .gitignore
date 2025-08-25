@@ -17,6 +17,7 @@ ref
 *.pth
 *.ckpt
 *.txt
+predict.zip
 
 # keep env
 !requirements.txt
@@ -189,3 +190,4 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 data
+data.zip
