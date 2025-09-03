@@ -1,4 +1,7 @@
-python train_combined5.py \
+export OMPI_ALLOW_RUN_AS_ROOT=1
+export OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+
+mpirun -np 2 python train_combined5.py \
     --train_data_list data/train_list.txt --val_data_list data/val_list.txt \
     --feat_dim 144 --num_joints 52 \
     --num_samples 2560 --vertex_samples 2048 \
