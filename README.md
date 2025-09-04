@@ -1,10 +1,10 @@
 # Jittor 人体骨骼生成赛题
 
-
-![示例1](example1.gif)
-![示例2](example2.gif)
-![示例3](example3.gif)
-
+<p align="center">
+  <img src="example1.gif" width="32%" />
+  <img src="example2.gif" width="32%" />
+  <img src="example3.gif" width="32%" />
+</p>
 
 ## 简介
 
